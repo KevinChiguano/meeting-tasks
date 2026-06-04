@@ -26,6 +26,8 @@ jobs:
 
           set -e  # Terminar si cualquier comando falla
 
+          git config --global --add safe.directory /var/www/meeting-tasks
+
           if [ ! -d "/var/www/meeting-tasks/.git" ]; then
             echo "📌 Repositorio no encontrado en el VPS. Clonando por primera vez..."
             git clone https://github.com/KevinChiguano/meeting-tasks.git /var/www/meeting-tasks
