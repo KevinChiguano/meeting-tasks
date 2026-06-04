@@ -78,8 +78,8 @@ jobs:
           if pm2 describe meeting-worker > /dev/null; then
             pm2 restart meeting-worker --update-env
           else
-            # Nota: El worker usa node con tsx o ts-node para correr directamente desde TypeScript
-            pm2 start npx --name "meeting-worker" -- tsx src/backend/queue/worker.ts
+            # Usa pnpm exec tsx para que pnpm localice el ejecutable tsx automáticamente
+            pm2 start pnpm --name "meeting-worker" -- exec tsx src/backend/queue/worker.ts
           fi
 
           pm2 save
