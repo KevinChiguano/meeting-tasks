@@ -41,6 +41,7 @@ jobs:
 
           echo "✅ Activando corepack y actualizando dependencias"
           corepack enable
+          export CI=true
           pnpm install --frozen-lockfile
 
           echo "✅ Respaldando compilación (.next) anterior"
