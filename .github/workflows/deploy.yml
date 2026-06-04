@@ -1,0 +1,81 @@
+name: 🚀 Deploy App Seguro
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta cuando se suben cambios a la rama principal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v3
+
+      - name: 🔐 Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy seguro en servidor
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+
+          set -e  # Terminar si cualquier comando falla
+
+          cd /var/www/meeting-tasks
+
+          echo "📌 Sincronizando repositorio"
+          git fetch --all
+          git reset --hard origin/main
+
+          echo "✅ Activando corepack y actualizando dependencias"
+          corepack enable
+          pnpm install --frozen-lockfile
+
+          echo "✅ Respaldando compilación (.next) anterior"
+          if [ -d .next ]; then
+            rm -rf .next_backup || true
+            cp -ar .next .next_backup
+          fi
+
+          echo "✅ Construyendo proyecto (Next.js)"
+          if ! pnpm run build; then
+            echo "❌ El build falló, restaurando la versión anterior"
+            if [ -d .next_backup ]; then
+              rm -rf .next && mv .next_backup .next
+            fi
+            exit 1
+          fi
+          
+          # Limpiar backup de compilación si el build fue exitoso
+          rm -rf .next_backup || true
+
+          echo "🗄️ Aplicando cambios de esquema en la base de datos (Drizzle)"
+          pnpm run db:push
+
+          echo "🚀 Reiniciando aplicación Next.js con PM2"
+          # Inicia o reinicia el servidor de Next.js
+          if pm2 describe meeting-app > /dev/null; then
+            pm2 restart meeting-app --update-env
+          else
+            pm2 start npm --name "meeting-app" -- run start -- -p 3002
+          fi
+
+          echo "⚙️ Reiniciando Worker de Transcripciones con PM2"
+          # Si tienes el worker corriendo de forma independiente en producción
+          if pm2 describe meeting-worker > /dev/null; then
+            pm2 restart meeting-worker --update-env
+          else
+            # Nota: El worker usa node con tsx o ts-node para correr directamente desde TypeScript
+            pm2 start npx --name "meeting-worker" -- tsx src/backend/queue/worker.ts
+          fi
+
+          pm2 save
+
+          echo "✅ Deploy completado correctamente"
+
+          EOF

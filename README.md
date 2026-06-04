@@ -133,12 +133,3 @@ Cuando estés listo para desplegar en tu propio servidor dedicado (VPS):
     ```bash
     pm2 start src/queue/worker.ts --interpreter node -r ts-node/register --name "meeting-worker"
     ```
-
----
-
-## 🔒 Seguridad y Manejo de Keys
-
-Este proyecto es estrictamente **seguro**:
-
-- Las llaves como `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` y las credenciales de Redis se configuran en el servidor y **nunca se envían ni exponen al navegador**.
-- El procesamiento de audio y las llamadas a la inteligencia artificial ocurren 100% de manera privada en el backend a través del worker de BullMQ.
