@@ -42,3 +42,6 @@ next-env.d.ts
 
 # sql
 /schema.sql
+
+# deploy guide
+/DEPLOY_GUIDE.md
